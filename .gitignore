@@ -1,0 +1,10 @@
+/data/
+/runs/
+*.pkl
+*.h5
+*.pt
+*.npz
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
