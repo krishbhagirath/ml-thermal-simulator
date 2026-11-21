@@ -64,8 +64,14 @@ class RidgePCA:
         return Vt.T @ ((S / (S**2 + lam_abs))[:, None] * (U.T @ Z))
 
     def _score(self, A, Yc, basis, tr, va) -> np.ndarray:
-        """Returns a (n_lams, n_ranks) array of validation RMSE."""
+        """(n_lams, n_ranks) array of validation sum-of-squared errors, computed exactly in PCA space.
+
+        `basis` rows are orthonormal, so for a prediction in span(basis[:r]):
+        ||pred - y||^2 = ||Zp[:r] - Zy[:r]||^2 + (||y||^2 - ||Zy[:r]||^2).
+        """
         Z = Yc[tr] @ basis.T
+        Zy = Yc[va] @ basis.T
+        y2 = (Yc[va] ** 2).sum()
         U, S, Vt = np.linalg.svd(A[tr], full_matrices=False)
         UtZ = U.T @ Z
         out = np.empty((len(self.lams), len(self.ranks)))
@@ -73,8 +79,7 @@ class RidgePCA:
             W = Vt.T @ ((S / (S**2 + lam * len(tr)))[:, None] * UtZ)
             Zp = A[va] @ W
             for j, r in enumerate(self.ranks):
-                pred = Zp[:, :r] @ basis[:r]
-                out[i, j] = np.sqrt(((pred - Yc[va]) ** 2).mean())
+                out[i, j] = ((Zp[:, :r] - Zy[:, :r]) ** 2).sum() + (y2 - (Zy[:, :r] ** 2).sum())
         return out
 
     def fit(self, X: np.ndarray, Y: np.ndarray, group: np.ndarray | None = None,
