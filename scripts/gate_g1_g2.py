@@ -24,6 +24,7 @@ import torch.nn.functional as F  # noqa: E402
 from thermal_research.data import ucr  # noqa: E402
 from thermal_research.physics.inversion import invert  # noqa: E402
 from thermal_research.physics.spectral import SpectralHeat  # noqa: E402
+from thermal_research.training.checkpoint import JsonProgress  # noqa: E402
 from thermal_research.viz import figures  # noqa: E402
 
 G_FIXED = 150 * 0.5e-3  # W/K (D-006)
@@ -82,15 +83,22 @@ def main() -> None:
     idx = subset(cd)
     Y = cd.Y[idx].astype(np.float64)
     out: dict = {"n_frames": int(len(idx)), "G_fixed_W_per_K": G_FIXED, "G1": {}, "G2": {}}
+    progress = JsonProgress(ROOT / "runs" / "gates" / "progress.json")  # resume after disconnects
     for low_hw in ((37, 31), (19, 16)):
+        key = f"{low_hw[0]}x{low_hw[1]}"
+        if key in progress:  # cached: reuse numbers (and the fitted h for G2); figure already written
+            out["G1"][key] = progress[key]
+            if low_hw == (37, 31):
+                h_fit = progress[key]["fitted_h"]
+            continue
         rmse, h, pred = fit_physics(Y, low_hw, cd.pitch_mm * 1e-3)
         ctrl = fit_smooth_control(Y, low_hw)
         ell_mm = math.sqrt(G_FIXED / h) * 1e3
-        key = f"{low_hw[0]}x{low_hw[1]}"
         out["G1"][key] = {
             "physics_floor_median": float(np.median(rmse)), "physics_floor_p90": float(np.quantile(rmse, 0.9)),
             "smooth_control_median": float(np.median(ctrl)), "fitted_h": h, "spreading_length_mm": ell_mm,
         }
+        progress.put(key, out["G1"][key])
         print(f"G1 {key}: physics floor median {np.median(rmse):.3f} C (p90 {np.quantile(rmse, .9):.3f}), "
               f"smooth control {np.median(ctrl):.3f} C, h={h:.0f} W/m2K, l={ell_mm:.2f} mm")
         if low_hw == (37, 31):

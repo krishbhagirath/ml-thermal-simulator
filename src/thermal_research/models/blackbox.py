@@ -74,6 +74,8 @@ class TorchRegressor:
         self.kind, self.out_hw, self.rank = kind, out_hw, rank
         self.max_epochs, self.lr, self.wd, self.batch, self.patience, self.seed = (
             max_epochs, lr, weight_decay, batch, patience, seed)
+        self.ckpt_path = None  # set by the protocol runner; enables mid-fit resume
+        self.ckpt_every = 10
         self.chosen_: dict = {}
 
     def _build(self, n_in: int, Yc: np.ndarray) -> nn.Module:
@@ -97,9 +99,23 @@ class TorchRegressor:
         if val is not None:
             xv = torch.tensor(val[0], dtype=torch.float32)
             yv = torch.tensor((val[1].reshape(len(val[1]), -1) - self.mean_) / self.std_, dtype=torch.float32)
+        from ..training import checkpoint as ck
+
         g = torch.Generator().manual_seed(self.seed)
-        best, best_state, since = np.inf, None, 0
-        for epoch in range(self.max_epochs):
+        best, best_state, since, start = np.inf, None, 0, 0
+        st = ck.load(self.ckpt_path)
+        if st is not None and st.get("n") == n:
+            self.net.load_state_dict(st["net"])
+            opt.load_state_dict(st["opt"])
+            g.set_state(st["gen"])
+            ck.set_rng_state(st["rng"])
+            best, best_state, since, start = st["best"], st["best_state"], st["since"], st["epoch"]
+        epoch = start - 1
+        for epoch in range(start, self.max_epochs):
+            if self.ckpt_path is not None and epoch > start and epoch % self.ckpt_every == 0:
+                ck.save(self.ckpt_path, {"n": n, "net": self.net.state_dict(), "opt": opt.state_dict(),
+                                         "gen": g.get_state(), "rng": ck.rng_state(), "best": best,
+                                         "best_state": best_state, "since": since, "epoch": epoch})
             self.net.train()
             perm = torch.randperm(n, generator=g)
             for i in range(0, n, self.batch):
@@ -121,6 +137,7 @@ class TorchRegressor:
                     break
         if best_state is not None:
             self.net.load_state_dict(best_state)
+        ck.clear(self.ckpt_path)
         self.chosen_ = {"epochs": epoch + 1, "val_rmse_c": float(np.sqrt(best) * self.std_) if np.isfinite(best) else None,
                         "params": int(sum(p.numel() for p in self.net.parameters()))}
         return self

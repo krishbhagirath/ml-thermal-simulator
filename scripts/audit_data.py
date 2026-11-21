@@ -18,6 +18,7 @@ import numpy as np  # noqa: E402
 from thermal_research.data import splits, ucr  # noqa: E402
 from thermal_research.evaluation import protocol, stats  # noqa: E402
 from thermal_research.models.baselines import CopyNearest, MeanMap, RidgePCA  # noqa: E402
+from thermal_research.training.checkpoint import JsonProgress  # noqa: E402
 from thermal_research.viz import figures  # noqa: E402
 
 
@@ -26,6 +27,7 @@ def main() -> None:
     print(f"i7: {cd.n} frames, {len(cd.workloads)} workloads, X{cd.X.shape}, maps {cd.shape}")
     models = {"mean": MeanMap, "ridge": RidgePCA, "copy-nearest": CopyNearest}
     out: dict = {"chip": "i7", "n_frames": cd.n, "results": {}}
+    progress = JsonProgress(ROOT / "runs" / "audit" / "progress.json")  # resume after disconnects
 
     rand_splits = [splits.random_frames(cd.n, 0.2, seed=s) for s in range(5)]
     lowo_splits = [splits.lowo(cd.group, cd.frame, held=g) for g in range(len(cd.workloads))]
@@ -37,8 +39,12 @@ def main() -> None:
             for use_sensors in (True, False):
                 if mname != "ridge" and not use_sensors:
                     continue  # mean / copy don't use telemetry
-                res = [protocol.evaluate_split(factory, cd, s, use_sensors=use_sensors) for s in split_list]
                 key = f"{split_name}|{mname}|{'sensors' if use_sensors else 'no-sensors'}"
+                if key in progress:
+                    out["results"][key] = progress[key]
+                    print(f"{key:40s} (cached)")
+                    continue
+                res = [protocol.evaluate_split(factory, cd, s, use_sensors=use_sensors) for s in split_list]
                 summary = {m: stats.hier_bootstrap(protocol.collect(res, m), n_boot=2000)
                            for m in ("rmse", "peak_err", "hotspot_mm", "corr")}
                 summary["n_sensor_cols"] = [r["n_sensor_cols"] for r in res]
@@ -47,6 +53,7 @@ def main() -> None:
                     summary["per_workload_rmse"] = {cd.workloads[w]: v["rmse"] for r in res
                                                     for w, v in r["per_workload"].items()}
                 out["results"][key] = summary
+                progress.put(key, summary)
                 r = summary["rmse"]
                 print(f"{key:40s} RMSE {r['mean']:.2f} [{r['lo']:.2f}, {r['hi']:.2f}] C   "
                       f"peak {summary['peak_err']['mean']:.2f} C")
