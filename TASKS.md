@@ -4,7 +4,9 @@ Status: `[ ]` pending · `[~]` active · `[x]` done · `[!]` blocked
 
 ## RESUME HERE (last session ended 2026-11-21)
 - Leakage audit DONE -> results/leakage.json (copy-nearest S-RAND 0.22 C; ridge LOWO 2.46 C with sensors, 10.4 C without).
-- Gates G1/G2 were running when the session ended: rerun `python -u scripts/gate_g1_g2.py` (resumable).
+- G1 37x31 DONE: physics floor 0.495 C median (passes), h ~ 13.7k, l ~ 2.3 mm (seeded into runs/gates/progress.json).
+  So the 4.6 C factorisation error is from the shared K=8 layout, not the physics: try larger K, a finer basis, h init ~1e4.
+  Rerun `python -u scripts/gate_g1_g2.py` to finish G1 19x16 + G2 (resumable).
 - Hybrid redesigned as `models/hybrid.py` HybridRidge (physics factorisation + tuned ridge). First check (k=3, draw 0):
   with sensors hybrid 9.3 C vs ridge 12.8 C; no sensors 22.9 vs 22.5. BUT factorisation fits calibration maps
   only to ~4.6 C, so the physics family is too restrictive. Static background map now added (untested on real data).
