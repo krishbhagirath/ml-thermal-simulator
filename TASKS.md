@@ -10,6 +10,9 @@ Status: `[ ]` pending · `[~]` active · `[x]` done · `[!]` blocked
 - Hybrid redesigned as `models/hybrid.py` HybridRidge (physics factorisation + tuned ridge). First check (k=3, draw 0):
   with sensors hybrid 9.3 C vs ridge 12.8 C; no sensors 22.9 vs 22.5. BUT factorisation fits calibration maps
   only to ~4.6 C, so the physics family is too restrictive. Static background map now added (untested on real data).
+  Same old hybrid (K=8, no background), one LOWO fold (held-out tiobench): with sensors hybrid 2.44 C vs ridge 1.37;
+  no sensors 8.08 vs 7.30. Hybrid map-pattern corr only 0.07 (ridge 0.64): the shared-basis fit (~4.4 C) wrecks the spatial
+  pattern, so fixing the factorisation (K>=16, h init ~1e4, background) comes before any protocol run.
   NEXT: re-check factor_rmse with background + K in {8,16}; then launch `scripts/run_protocol.py` (resumable).
 - Checkpointing: protocol tasks -> runs/protocol/results.jsonl; mid-fit ckpts for hybrid factorisation and NN
   baselines; audit/gates save per config.
