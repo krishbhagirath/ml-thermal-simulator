@@ -31,3 +31,8 @@ Format: ID Â· date Â· decision Â· alternatives Â· why Â· trade-offs.
 **D-007 Â· 2026-11-21 Â· Pixel pitch is fixed at 50 Âµm** for the i7 maps [paper-reported], giving a map of 9.25 Ã— 7.70 mm.
 
 **D-008 Â· 2026-11-21 Â· Work on branch `dev`; author `krishbhagirath`; no co-author trailers anywhere.** The initial commit was rewritten to remove a Claude co-author trailer, which needed a one-time force-push of `main`.
+
+**D-009 · 2026-11-22 · Gates G1 and G2 passed; the shared-layout factorisation needs more capacity.**
+- G1: per-frame physics floor about 0.50 °C at both 37×31 and 19×16 basis resolution, against a 1.0 °C threshold, so H-spec is adequate.
+- G2: per-workload power maps share hot regions (mean cosine 0.81), but some differ (min 0.51), for example single-core vs all-core workloads.
+- Action: raise the factorisation's K from 8 to 16 or more, and initialise h near the G1 fit scale (~1e4, a generic prior, not fitted to test data). The 4.6 °C shared-basis error is a capacity/initialisation issue, not a physics failure.

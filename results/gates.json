@@ -1,0 +1,25 @@
+{
+  "n_frames": 380,
+  "G_fixed_W_per_K": 0.075,
+  "G1": {
+    "37x31": {
+      "physics_floor_median": 0.49534112215042114,
+      "physics_floor_p90": 0.7743762731552124,
+      "smooth_control_median": 0.07265477977665233,
+      "fitted_h": 13666.23046875,
+      "spreading_length_mm": 2.3426438136158496
+    },
+    "19x16": {
+      "physics_floor_median": 0.4981743097305298,
+      "physics_floor_p90": 0.7800678014755249,
+      "smooth_control_median": 0.10105116046505039,
+      "fitted_h": 13726.7861328125,
+      "spreading_length_mm": 2.337470820077058
+    }
+  },
+  "G2": {
+    "cosine_mean": 0.8081031421484194,
+    "cosine_min": 0.5120422465539737,
+    "cosine_p10": 0.664385563846272
+  }
+}
